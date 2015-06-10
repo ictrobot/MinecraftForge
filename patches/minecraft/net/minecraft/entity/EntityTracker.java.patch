@@ -1,6 +1,149 @@
 --- ../src-base/minecraft/net/minecraft/entity/EntityTracker.java
 +++ ../src-work/minecraft/net/minecraft/entity/EntityTracker.java
-@@ -337,4 +337,23 @@
+@@ -50,14 +50,75 @@
+     private int field_72792_d;
+     private static final String __OBFID = "CL_00001431";
+ 
++    private static final java.io.File dir;
++    private static final java.text.SimpleDateFormat fileDateFormat = new java.text.SimpleDateFormat("HH_mm");
++    private static final java.text.SimpleDateFormat outputDateFormat = new java.text.SimpleDateFormat("HH:mm:ss.SSS");
++    private static java.io.FileWriter fileWriter;
++    private static String dateString = "";
++    
++    static {
++        dir = new java.io.File("entitytracker");
++        dir.mkdirs();
++        System.out.println("ENTITY TRACKER OUTPUT FOLDER: " + dir.getAbsolutePath());
++    }
++    
++    private static java.io.FileWriter getFileWriter() throws java.io.IOException {
++        synchronized (dir) {
++            String s = fileDateFormat.format(java.util.Calendar.getInstance().getTime());
++            if (s.equals(dateString)) {
++                return fileWriter; 
++            } else {
++                if (fileWriter != null) fileWriter.close();
++                java.io.File file = new java.io.File(dir, s);
++                fileWriter = new java.io.FileWriter(file);
++                dateString = s;
++                return fileWriter;
++            }
++        }
++    }
++    
++    private static String getString(Throwable throwable) {
++        java.io.StringWriter sw = new java.io.StringWriter();
++        java.io.PrintWriter pw = new java.io.PrintWriter(sw);
++        throwable.printStackTrace(pw);
++        return sw.toString();
++    }
++    
++    private static void write(EntityTracker entityTracker, String method, Object... args) {
++        synchronized (dir) {
++            try {
++                java.io.FileWriter f = getFileWriter();
++                String s = outputDateFormat.format(java.util.Calendar.getInstance().getTime());
++                f.write(s + ", DIM:" + entityTracker.field_72795_a.field_73011_w.field_76574_g + ", " + entityTracker.toString() + ", " + Thread.currentThread().getName() + ", " + method + "\n");
++                if (args != null && args.length > 0) {
++                    f.write("ARGS: ");
++                    for (Object a : args) {
++                        if (a == null) {
++                            f.write("null ");
++                        } else {
++                            f.write(a.toString() + " ");
++                        }
++                    }
++                    f.write("\n");
++                }
++                f.write(getString(new RuntimeException("Debug")) + "\n");
++                f.flush();
++            } catch (Exception e) {
++                e.printStackTrace();
++            }
++        }
++    }
++    
+     public EntityTracker(WorldServer p_i1516_1_)
+     {
+         this.field_72795_a = p_i1516_1_;
+         this.field_72792_d = p_i1516_1_.func_73046_m().func_71203_ab().func_72372_a();
++        write(this, "EntityTracker(WorldServer)", p_i1516_1_);
+     }
+ 
+     public void func_72786_a(Entity p_72786_1_)
+     {
++        write(this, "addEntityToTracker(Entity)", p_72786_1_);
+         if (EntityRegistry.instance().tryTrackingEntity(this, p_72786_1_))
+         {
+             return;
+@@ -179,11 +240,13 @@
+ 
+     public void func_72791_a(Entity p_72791_1_, int p_72791_2_, int p_72791_3_)
+     {
++        write(this, "addEntityToTracker(Entity, int, int)", p_72791_1_, p_72791_2_, p_72791_3_);
+         this.func_72785_a(p_72791_1_, p_72791_2_, p_72791_3_, false);
+     }
+ 
+     public void func_72785_a(Entity p_72785_1_, int p_72785_2_, final int p_72785_3_, boolean p_72785_4_)
+     {
++        write(this, "addEntityToTracker(Entity, int, int, boolean)", p_72785_1_, p_72785_2_, p_72785_3_, p_72785_4_);
+         if (p_72785_2_ > this.field_72792_d)
+         {
+             p_72785_2_ = this.field_72792_d;
+@@ -238,6 +301,7 @@
+ 
+     public void func_72790_b(Entity p_72790_1_)
+     {
++        write(this, "removeEntityFromAllTrackingPlayers(Entity)", p_72790_1_);
+         if (p_72790_1_ instanceof EntityPlayerMP)
+         {
+             EntityPlayerMP entityplayermp = (EntityPlayerMP)p_72790_1_;
+@@ -261,6 +325,7 @@
+ 
+     public void func_72788_a()
+     {
++        write(this, "updateTrackedEntities(), START");
+         ArrayList arraylist = new ArrayList();
+         Iterator iterator = this.field_72793_b.iterator();
+ 
+@@ -290,10 +355,12 @@
+                 }
+             }
+         }
++        write(this, "updateTrackedEntities(), END");
+     }
+ 
+     public void func_151247_a(Entity p_151247_1_, Packet p_151247_2_)
+     {
++        write(this, "func_151247_a(Entity, Packet)", p_151247_1_, p_151247_2_);
+         EntityTrackerEntry entitytrackerentry = (EntityTrackerEntry)this.field_72794_c.func_76041_a(p_151247_1_.func_145782_y());
+ 
+         if (entitytrackerentry != null)
+@@ -304,6 +371,7 @@
+ 
+     public void func_151248_b(Entity p_151248_1_, Packet p_151248_2_)
+     {
++        write(this, "func_151248_b(Entity, Packet)", p_151248_1_, p_151248_2_);
+         EntityTrackerEntry entitytrackerentry = (EntityTrackerEntry)this.field_72794_c.func_76041_a(p_151248_1_.func_145782_y());
+ 
+         if (entitytrackerentry != null)
+@@ -314,6 +382,7 @@
+ 
+     public void func_72787_a(EntityPlayerMP p_72787_1_)
+     {
++        write(this, "removePlayerFromTrackers(EntityPlayerMP)", p_72787_1_);
+         Iterator iterator = this.field_72793_b.iterator();
+ 
+         while (iterator.hasNext())
+@@ -325,6 +394,7 @@
+ 
+     public void func_85172_a(EntityPlayerMP p_85172_1_, Chunk p_85172_2_)
+     {
++        write(this, "func_85172_a(EntityPlayerMP, Chunk)", p_85172_1_, p_85172_2_);
+         Iterator iterator = this.field_72793_b.iterator();
+ 
+         while (iterator.hasNext())
+@@ -337,4 +407,24 @@
              }
          }
      }
@@ -15,6 +158,7 @@
 +     */
 +    public Set<net.minecraft.entity.player.EntityPlayer> getTrackingPlayers(Entity entity)
 +    {
++        write(this, "getTrackingPlayers(Entity)", entity);
 +        EntityTrackerEntry entry = (EntityTrackerEntry) field_72794_c.func_76041_a(entity.func_145782_y());
 +        if (entry == null)
 +            return java.util.Collections.emptySet();
